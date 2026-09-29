@@ -1,0 +1,35 @@
+{
+  "name": "pikachu-multiplayer",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/client",
+    "packages/game-engine"
+  ],
+  "scripts": {
+    "dev": "npm run build:engine && npm --workspace apps/client run dev -- --host 0.0.0.0",
+    "build": "npm run build:engine && npm run build:client",
+    "build:engine": "tsc -p packages/game-engine/tsconfig.json",
+    "build:client": "npm --workspace apps/client run build",
+    "typecheck": "npm run build:engine && npm --workspace apps/client run typecheck",
+    "test": "npm run build:engine && node --test packages/game-engine/test/*.test.mjs && npm --workspace apps/client run test"
+  },
+  "dependencies": {
+    "@pikachu/game-engine": "*",
+    "lucide-react": "^0.468.0",
+    "pixi.js": "^8.14.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.0.0",
+    "vitest": "^2.1.8"
+  },
+  "overrides": {
+    "rollup": "npm:@rollup/wasm-node@^4.63.5"
+  }
+}

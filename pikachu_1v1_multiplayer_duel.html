@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pikachu Onet 1v1 Duel Arcade</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700;800&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+  
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Chakra Petch', sans-serif;
+      background: radial-gradient(circle at 50% 20%, #151c38 0%, #070b19 100%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .neon-text-blue {
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.7), 0 0 20px rgba(14, 165, 233, 0.5);
+    }
+    .neon-text-gold {
+      text-shadow: 0 0 10px rgba(250, 204, 21, 0.7), 0 0 20px rgba(234, 179, 8, 0.5);
+    }
+    .neon-border-blue {
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.35), inset 0 0 10px rgba(56, 189, 248, 0.2);
+    }
+    .neon-border-red {
+      box-shadow: 0 0 15px rgba(244, 63, 94, 0.35), inset 0 0 10px rgba(244, 63, 94, 0.2);
+    }
+
+    /* Onet Tile Styles */
+    .onet-tile {
+      font-family: 'Nunito', sans-serif;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+      touch-action: manipulation;
+    }
+    .onet-tile:active {
+      transform: scale(0.92);
+    }
+    .tile-p1-selected {
+      border: 3px solid #38bdf8 !important;
+      background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+      box-shadow: 0 0 14px #38bdf8, inset 0 0 8px #7dd3fc !important;
+      transform: translateY(-2px) scale(1.06);
+      z-index: 10;
+    }
+    .tile-p2-selected {
+      border: 3px solid #f43f5e !important;
+      background: linear-gradient(135deg, #e11d48, #be123c) !important;
+      box-shadow: 0 0 14px #f43f5e, inset 0 0 8px #fda4af !important;
+      transform: translateY(-2px) scale(1.06);
+      z-index: 10;
+    }
+
+    /* Debuff Effects on Boards */
+    .frozen-effect {
+      filter: drop-shadow(0 0 18px #38bdf8) brightness(0.85);
+      position: relative;
+    }
+    .frozen-effect::after {
+      content: "❄️ FROZEN! ❄️";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #bae6fd;
+      background: rgba(14, 116, 144, 0.65);
+      backdrop-filter: blur(3px);
+      border-radius: 0.75rem;
+      z-index: 40;
+      pointer-events: all;
+      animation: pulse 1s infinite;
+    }
+    .ink-blinding {
+      position: relative;
+    }
+    .ink-blinding::after {
+      content: "💣 SMOKEBOMB! 💣";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #fbbf24;
+      background: rgba(15, 23, 42, 0.94);
+      border-radius: 0.75rem;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    /* Custom Line Animation */
+    .laser-line {
+      stroke-dasharray: 8;
+      animation: laserDash 0.35s linear infinite;
+    }
+    @keyframes laserDash {
+      to {
+        stroke-dashoffset: -16;
+      }
+    }
+  </style>
+</head>
+<body class="p-2 md:p-5 flex flex-col items-center justify-between">
+
+  <header class="w-full max-w-7xl flex flex-wrap items-center justify-between gap-3 mb-3 bg-slate-900/80 p-3 rounded-2xl border border-slate-700/70 backdrop-blur-md shadow-xl">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-yellow-500/30">
+        ⚡
+      </div>
+      <div>
+        <h1 class="text-xl md:text-2xl font-black tracking-wider text-white flex items-center gap-2">
+          PIKACHU <span class="text-amber-400">1V1 DUEL</span>
+          <span class="text-xs font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">Arcade</span>
+        </h1>
+        <p class="text-xs text-slate-400">Classic Onet Connection with Live Multiplayer Combat</p>
+      </div>
+    </div>
+
+    <!-- Mode Selector & Controls -->
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="bg-slate-800 p-1 rounded-xl border border-slate-700 flex text-xs font-bold">
+        <button id="modeSplitBtn" onclick="switchGameMode('split')" class="px-3 py-1.5 rounded-lg transition-all bg-sky-600 text-white shadow">
+          <i class="fa-solid fa-columns mr-1"></i> Split Race (2 Boards)
+        </button>
+        <button id="modeSharedBtn" onclick="switchGameMode('shared')" class="px-3 py-1.5 rounded-lg transition-all text-slate-400 hover:text-white">
+          <i class="fa-solid fa-gamepad mr-1"></i> Shared Board (1 Board)
+        </button>
+      </div>
+
+      <button onclick="restartMatch()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-bold transition flex items-center gap-1.5 shadow">
+        <i class="fa-solid fa-rotate-right text-emerald-400"></i> New Match
+      </button>
+
+      <button id="soundToggleBtn" onclick="toggleAudio()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-bold transition flex items-center gap-1.5">
+        <i class="fa-solid fa-volume-high text-amber-400" id="soundIcon"></i> SFX On
+      </button>
+
+      <button onclick="openRulesModal()" class="px-3 py-1.5 rounded-xl bg-indigo-600/80 hover:bg-indigo-600 border border-indigo-500 text-xs font-bold transition flex items-center gap-1.5 text-white">
+        <i class="fa-solid fa-circle-question"></i> Guide
+      </button>
+    </div>
+  </header>
+
+  <div class="w-full max-w-7xl grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+    <!-- P1 Status -->
+    <div class="bg-slate-900/90 border border-sky-500/40 rounded-xl p-2.5 flex items-center justify-between shadow-lg">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center font-black text-slate-950 text-sm shadow">P1</div>
+        <div>
+          <div class="text-[11px] text-sky-400 font-bold uppercase tracking-wider">Player 1 (Blue)</div>
+          <div class="text-lg font-black text-white" id="p1Score">0 pts</div>
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="text-[10px] text-slate-400">Combo</div>
+        <div class="text-xs font-black text-amber-400" id="p1Combo">x0</div>
+      </div>
+    </div>
+
+    <!-- Match Timer -->
+    <div class="bg-slate-900/90 border border-amber-500/40 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-lg">
+      <div class="text-[10px] uppercase font-bold tracking-widest text-amber-300">Round Time Remaining</div>
+      <div class="text-xl font-extrabold text-amber-400 font-mono tracking-wider" id="matchTimerText">03:00</div>
+      <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1 border border-slate-700">
+        <div id="matchTimeBar" class="bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 h-full w-full transition-all duration-300"></div>
+      </div>
+    </div>
+
+    <!-- P2 Status -->
+    <div class="bg-slate-900/90 border border-rose-500/40 rounded-xl p-2.5 flex items-center justify-between shadow-lg">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-rose-500 flex items-center justify-center font-black text-white text-sm shadow">P2</div>
+        <div>
+          <div class="text-[11px] text-rose-400 font-bold uppercase tracking-wider">Player 2 (Red)</div>
+          <div class="text-lg font-black text-white" id="p2Score">0 pts</div>
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="text-[10px] text-slate-400">Combo</div>
+        <div class="text-xs font-black text-amber-400" id="p2Combo">x0</div>
+      </div>
+    </div>
+
+    <!-- Combat Info / Attack Bar -->
+    <div class="bg-slate-900/90 border border-purple-500/40 rounded-xl p-2.5 flex items-center justify-between shadow-lg">
+      <div>
+        <div class="text-[10px] text-purple-300 uppercase font-bold">PvP Combat Trigger</div>
+        <div class="text-xs font-semibold text-slate-300">3x Combo = Attack Rival!</div>
+      </div>
+      <div class="text-lg">⚔️💥</div>
+    </div>
+  </div>
+
+  <main class="w-full max-w-7xl flex-1 flex flex-col items-center justify-center relative">
+
+    <!-- SPLIT-SCREEN CONTAINER -->
+    <div id="splitArena" class="w-full grid grid-cols-1 lg:grid-cols-2 gap-4">
+      
+      <!-- Player 1 Board Panel -->
+      <section id="p1BoardPanel" class="bg-slate-900/70 border-2 border-sky-500/40 p-3 rounded-2xl relative shadow-2xl transition duration-200">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping"></span>
+            <span class="text-sm font-extrabold text-sky-400 tracking-wide uppercase">P1 Territory</span>
+            <span class="text-xs text-slate-400 font-medium">(Clicks or Mouse)</span>
+          </div>
+          <div class="flex gap-1.5">
+            <button onclick="reshufflePlayerBoard(0)" class="text-xs px-2.5 py-1 rounded-lg bg-sky-950 hover:bg-sky-900 border border-sky-700/60 text-sky-300 font-bold transition">
+              <i class="fa-solid fa-shuffle mr-1"></i> Reshuffle (<span id="p1Shuffles">3</span>)
+            </button>
+            <button onclick="requestHint(0)" class="text-xs px-2.5 py-1 rounded-lg bg-sky-950 hover:bg-sky-900 border border-sky-700/60 text-amber-300 font-bold transition">
+              <i class="fa-solid fa-lightbulb mr-1"></i> Hint
+            </button>
+          </div>
+        </div>
+
+        <!-- Board & SVG Overlay -->
+        <div class="relative flex items-center justify-center p-1 bg-slate-950/70 rounded-xl border border-slate-800">
+          <div id="p1Grid" class="grid gap-1 md:gap-1.5 w-full"></div>
+          <svg id="p1Svg" class="absolute inset-0 w-full h-full pointer-events-none z-30"></svg>
+        </div>
+      </section>
+
+      <!-- Player 2 Board Panel -->
+      <section id="p2BoardPanel" class="bg-slate-900/70 border-2 border-rose-500/40 p-3 rounded-2xl relative shadow-2xl transition duration-200">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-400 animate-ping"></span>
+            <span class="text-sm font-extrabold text-rose-400 tracking-wide uppercase">P2 Territory</span>
+            <span class="text-xs text-slate-400 font-medium">(Solo or Friend Input)</span>
+          </div>
+          <div class="flex gap-1.5">
+            <button onclick="reshufflePlayerBoard(1)" class="text-xs px-2.5 py-1 rounded-lg bg-rose-950 hover:bg-rose-900 border border-rose-700/60 text-rose-300 font-bold transition">
+              <i class="fa-solid fa-shuffle mr-1"></i> Reshuffle (<span id="p2Shuffles">3</span>)
+            </button>
+            <button onclick="requestHint(1)" class="text-xs px-2.5 py-1 rounded-lg bg-rose-950 hover:bg-rose-900 border border-rose-700/60 text-amber-300 font-bold transition">
+              <i class="fa-solid fa-lightbulb mr-1"></i> Hint
+            </button>
+          </div>
+        </div>
+
+        <!-- Board & SVG Overlay -->
+        <div class="relative flex items-center justify-center p-1 bg-slate-950/70 rounded-xl border border-slate-800">
+          <div id="p2Grid" class="grid gap-1 md:gap-1.5 w-full"></div>
+          <svg id="p2Svg" class="absolute inset-0 w-full h-full pointer-events-none z-30"></svg>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- SHARED SINGLE BOARD CONTAINER (Initially Hidden) -->
+    <div id="sharedArena" class="w-full max-w-4xl hidden flex-col items-center">
+      <div class="w-full bg-slate-900/80 border-2 border-amber-500/40 p-3 rounded-2xl relative shadow-2xl">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-3">
+            <span class="text-sm font-extrabold text-amber-400 uppercase tracking-wide">Shared Battleground</span>
+            <span class="text-xs text-slate-300">Click a tile: <b class="text-sky-400">P1 selects Blue</b>, <b class="text-rose-400">P2 selects Red</b>!</span>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="toggleSharedTurn()" id="turnIndicatorBtn" class="text-xs px-3 py-1 rounded-lg bg-sky-600 text-white font-black shadow transition">
+              Active Selector: Player 1 (Blue)
+            </button>
+            <button onclick="reshufflePlayerBoard(0)" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-300 font-bold transition">
+              <i class="fa-solid fa-shuffle mr-1"></i> Reshuffle
+            </button>
+          </div>
+        </div>
+
+        <div class="relative flex items-center justify-center p-1.5 bg-slate-950/70 rounded-xl border border-slate-800">
+          <div id="sharedGrid" class="grid gap-1 md:gap-1.5 w-full"></div>
+          <svg id="sharedSvg" class="absolute inset-0 w-full h-full pointer-events-none z-30"></svg>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <div id="attackBanner" class="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-red-600 to-amber-600 text-white font-extrabold text-sm md:text-base px-6 py-2.5 rounded-full shadow-2xl border-2 border-amber-300 hidden items-center gap-3 pointer-events-none animate-bounce">
+    <i class="fa-solid fa-bolt-lightning text-yellow-300 text-lg"></i>
+    <span id="attackBannerText">PLAYER 1 HIT 3X COMBO! FROZE OPPONENT!</span>
+  </div>
+
+  <!-- VICTORY MODAL -->
+  <div id="victoryModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+    <div class="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-400 rounded-3xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl relative">
+      <div class="text-5xl mb-3" id="victoryTrophy">🏆</div>
+      <h2 class="text-3xl font-black text-amber-400 mb-1 tracking-wider uppercase" id="victoryTitle">Player 1 Wins!</h2>
+      <p class="text-xs text-slate-300 mb-5" id="victorySubtitle">Lightning reflexes & incredible visual speed!</p>
+
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 mb-6 grid grid-cols-2 gap-4">
+        <div class="text-left border-r border-slate-700 pr-2">
+          <div class="text-xs text-sky-400 font-bold uppercase">Player 1</div>
+          <div class="text-xl font-black text-white" id="modalP1Score">0 pts</div>
+          <div class="text-[11px] text-slate-400 mt-1">Tiles cleared: <span id="modalP1Tiles" class="text-sky-300 font-bold">0</span></div>
+        </div>
+        <div class="text-left pl-2">
+          <div class="text-xs text-rose-400 font-bold uppercase">Player 2</div>
+          <div class="text-xl font-black text-white" id="modalP2Score">0 pts</div>
+          <div class="text-[11px] text-slate-400 mt-1">Tiles cleared: <span id="modalP2Tiles" class="text-rose-300 font-bold">0</span></div>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button onclick="restartMatch()" class="flex-1 py-3 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black rounded-xl hover:brightness-110 shadow-lg shadow-amber-500/30 transition uppercase tracking-wider text-sm">
+          <i class="fa-solid fa-play mr-1.5"></i> Play Rematch
+        </button>
+        <button onclick="closeVictoryModal()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition text-sm">
+          Review
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RULES / ARCHITECTURE MODAL -->
+  <div id="rulesModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-lg w-full text-slate-200 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+        <h3 class="text-xl font-black text-amber-400 flex items-center gap-2">
+          <i class="fa-solid fa-book-open"></i> Onet Pikachu Duel Guide
+        </h3>
+        <button onclick="closeRulesModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <div class="space-y-4 text-xs md:text-sm text-slate-300 leading-relaxed">
+        <div>
+          <h4 class="font-bold text-white text-sm mb-1 text-sky-400">1. Connecting Rule (Onet 3-Line Path):</h4>
+          <p>You can connect two matching tiles if the line connecting them turns at most <strong>2 times</strong> (consists of up to 3 orthogonal line segments) without crossing any other obstacle tile. Empty outer space outside the board can also be used as a passage!</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-white text-sm mb-1 text-amber-400">2. Multiplayer Duel Modes:</h4>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><strong>Split Race (Same Seed):</strong> Both players start with the identical board layout side-by-side. The first to clear their board or whoever has the most points when the timer expires wins!</li>
+            <li><strong>PvP Combos & Sabotage:</strong> Match tiles quickly! Every 3 combos fires a freeze or smokebomb attack at your rival.</li>
+            <li><strong>Shared Battleground:</strong> 1 single board shared in the center. Both players rush to snatch pairs from the same grid!</li>
+          </ul>
+        </div>
+
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+          <h4 class="font-bold text-emerald-400 text-xs uppercase mb-1">Architecture Note (Online 1v1 Feasibility):</h4>
+          <p class="text-xs text-slate-400">
+            For online play across separate devices, the exact same seed generator and deterministic BFS validator used here can be hosted on a Node.js / WebSocket server (or WebRTC PeerJS). Client sends `(r1, c1, r2, c2)`, server validates BFS and broadcasts sync events.
+          </p>
+        </div>
+      </div>
+
+      <button onclick="closeRulesModal()" class="mt-6 w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition text-xs uppercase">
+        Got it! Let's Duel
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Board parameters: 8 rows x 10 cols (with virtual outer boundaries)
+    const ROWS = 8;
+    const COLS = 10;
+    const TOTAL_TILES = ROWS * COLS; // 80 tiles = 40 pairs
+
+    // Set of cute, vibrant Pokémon/Animal characters with matching color backgrounds
+    const POKEMON_SPECIES = [
+      { id: 1, name: "Pikachu", icon: "⚡", bg: "#ca8a04", color: "#fef08a" },
+      { id: 2, name: "Charmander", icon: "🔥", bg: "#ea580c", color: "#fed7aa" },
+      { id: 3, name: "Squirtle", icon: "💧", bg: "#0284c7", color: "#bae6fd" },
+      { id: 4, name: "Bulbasaur", icon: "🍃", bg: "#16a34a", color: "#bbf7d0" },
+      { id: 5, name: "Gengar", icon: "👻", bg: "#7e22ce", color: "#e9d5ff" },
+      { id: 6, name: "Jigglypuff", icon: "🎵", bg: "#db2777", color: "#fbcfe8" },
+      { id: 7, name: "Snorlax", icon: "💤", bg: "#0f766e", color: "#99f6e4" },
+      { id: 8, name: "Eevee", icon: "🦊", bg: "#b45309", color: "#fde68a" },
+      { id: 9, name: "Mewtwo", icon: "🔮", bg: "#9333ea", color: "#f3e8ff" },
+      { id: 10, name: "Meowth", icon: "🪙", bg: "#d97706", color: "#fef3c7" },
+      { id: 11, name: "Psyduck", icon: "🦆", bg: "#eab308", color: "#fef9c3" },
+      { id: 12, name: "Togepi", icon: "🥚", bg: "#0891b2", color: "#cffafe" },
+      { id: 13, name: "Dratini", icon: "🐉", bg: "#2563eb", color: "#bfdbfe" },
+      { id: 14, name: "Butterfree", icon: "🦋", bg: "#4f46e5", color: "#c7d2fe" },
+      { id: 15, name: "Machop", icon: "🥊", bg: "#dc2626", color: "#fecaca" },
+      { id: 16, name: "Slowpoke", icon: "🌸", bg: "#be185d", color: "#fce7f3" }
+    ];
+
+    let audioCtx = null;
+    let sfxEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playSound(type) {
+      if (!sfxEnabled) return;
+      try {
+        initAudio();
+        const now = audioCtx.currentTime;
+
+        if (type === 'select') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (type === 'match') {
+          // Cheerful dual chime
+          [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + i * 0.05);
+            gain.gain.setValueAtTime(0.25, now + i * 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.25);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.05);
+            osc.stop(now + i * 0.05 + 0.25);
+          });
+        } else if (type === 'attack') {
+          // Zap / laser noise
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(800, now);
+          osc.frequency.exponentialRampToValueAtTime(120, now + 0.35);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } else if (type === 'invalid') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(160, now);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'victory') {
+          // Arpeggio fanfare
+          const notes = [440, 554.37, 659.25, 880, 1108.73];
+          notes.forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+            gain.gain.setValueAtTime(0.3, now + idx * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.4);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + idx * 0.1);
+            osc.stop(now + idx * 0.1 + 0.4);
+          });
+        }
+      } catch (e) {
+        // Fallback safely if browser audio policy restricts
+      }
+    }
+
+    function toggleAudio() {
+      sfxEnabled = !sfxEnabled;
+      const icon = document.getElementById('soundIcon');
+      const btn = document.getElementById('soundToggleBtn');
+      if (sfxEnabled) {
+        icon.className = "fa-solid fa-volume-high text-amber-400";
+        btn.innerHTML = `<i class="fa-solid fa-volume-high text-amber-400" id="soundIcon"></i> SFX On`;
+      } else {
+        btn.innerHTML = `<i class="fa-solid fa-volume-xmark text-slate-500" id="soundIcon"></i> SFX Off`;
+      }
+    }
+
+    let gameMode = 'split'; // 'split' or 'shared'
+    let sharedActivePlayer = 0; // 0 for P1, 1 for P2 in shared mode
+
+    // Match timing
+    let matchTotalSeconds = 180;
+    let matchTimeLeft = 180;
+    let timerInterval = null;
+    let matchEnded = false;
+
+    // Player Data Objects
+    const players = [
+      {
+        id: 0,
+        name: "Player 1",
+        colorName: "sky",
+        score: 0,
+        combos: 0,
+        shufflesLeft: 3,
+        tilesCleared: 0,
+        selectedTile: null, // { r, c }
+        board: [],          // 2D Array [ROWS + 2][COLS + 2] (with 0-padding)
+        isFrozen: false,
+        isBlinded: false
+      },
+      {
+        id: 1,
+        name: "Player 2",
+        colorName: "rose",
+        score: 0,
+        combos: 0,
+        shufflesLeft: 3,
+        tilesCleared: 0,
+        selectedTile: null,
+        board: [],
+        isFrozen: false,
+        isBlinded: false
+      }
+    ];
+
+    function generateIdenticalSeedPairs() {
+      // Pick matching pairs so every tile has a duplicate
+      const pairsNeeded = TOTAL_TILES / 2;
+      const list = [];
+      for (let i = 0; i < pairsNeeded; i++) {
+        const species = POKEMON_SPECIES[i % POKEMON_SPECIES.length];
+        list.push(species.id, species.id);
+      }
+      // Deterministic / random shuffle
+      for (let i = list.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [list[i], list[j]] = [list[j], list[i]];
+      }
+      return list;
+    }
+
+    function createPaddedMatrix(flatList) {
+      // Create (ROWS + 2) x (COLS + 2) matrix. Outer boundary is 0 (empty pathway)
+      const matrix = [];
+      for (let r = 0; r < ROWS + 2; r++) {
+        const row = [];
+        for (let c = 0; c < COLS + 2; c++) {
+          if (r === 0 || r === ROWS + 1 || c === 0 || c === COLS + 1) {
+            row.push(0);
+          } else {
+            const index = (r - 1) * COLS + (c - 1);
+            row.push(flatList[index]);
+          }
+        }
+        matrix.push(row);
+      }
+      return matrix;
+    }
+
+    function findOnetPath(matrix, startR, startC, targetR, targetC) {
+      if (matrix[startR][startC] === 0 || matrix[targetR][targetC] === 0) return null;
+      if (matrix[startR][startC] !== matrix[targetR][targetC]) return null;
+      if (startR === targetR && startC === targetC) return null;
+
+      // Directions: 0: Up (-1, 0), 1: Right (0, 1), 2: Down (1, 0), 3: Left (0, -1)
+      const dirs = [
+        { dr: -1, dc: 0 },
+        { dr: 0, dc: 1 },
+        { dr: 1, dc: 0 },
+        { dr: 0, dc: -1 }
+      ];
+
+      // Queue items: { r, c, dir, turns, path: [{r, c}, ...] }
+      const queue = [];
+      // Cost tracker: min turns to reach (r, c) with direction d
+      const minTurns = Array.from({ length: ROWS + 2 }, () =>
+        Array.from({ length: COLS + 2 }, () => [Infinity, Infinity, Infinity, Infinity])
+      );
+
+      // Initialize all 4 directions from start
+      for (let d = 0; d < 4; d++) {
+        const nr = startR + dirs[d].dr;
+        const nc = startC + dirs[d].dc;
+        if (nr >= 0 && nr < ROWS + 2 && nc >= 0 && nc < COLS + 2) {
+          if (nr === targetR && nc === targetC) {
+            return [{ r: startR, c: startC }, { r: targetR, c: targetC }];
+          }
+          if (matrix[nr][nc] === 0) {
+            minTurns[nr][nc][d] = 0;
+            queue.push({
+              r: nr,
+              c: nc,
+              dir: d,
+              turns: 0,
+              path: [{ r: startR, c: startC }, { r: nr, c: nc }]
+            });
+          }
+        }
+      }
+
+      while (queue.length > 0) {
+        const curr = queue.shift();
+
+        // If target reached
+        if (curr.r === targetR && curr.c === targetC) {
+          return curr.path;
+        }
+
+        // Expand in all 4 directions
+        for (let d = 0; d < 4; d++) {
+          const nr = curr.r + dirs[d].dr;
+          const nc = curr.c + dirs[d].dc;
+          const newTurns = curr.dir === d ? curr.turns : curr.turns + 1;
+
+          if (newTurns > 2) continue; // Pikachu Rule: Max 2 bends (3 lines)
+
+          if (nr >= 0 && nr < ROWS + 2 && nc >= 0 && nc < COLS + 2) {
+            // Target is an obstacle unless it's the exact end tile
+            const isTarget = (nr === targetR && nc === targetC);
+            const isEmpty = (matrix[nr][nc] === 0);
+
+            if (isEmpty || isTarget) {
+              if (newTurns < minTurns[nr][nc][d]) {
+                minTurns[nr][nc][d] = newTurns;
+                queue.push({
+                  r: nr,
+                  c: nc,
+                  dir: d,
+                  turns: newTurns,
+                  path: [...curr.path, { r: nr, c: nc }]
+                });
+              }
+            }
+          }
+        }
+      }
+
+      return null; // No legal path with <= 2 bends
+    }
+
+    function checkAvailableMove(matrix) {
+      // Find at least 1 valid connecting pair
+      for (let r1 = 1; r1 <= ROWS; r1++) {
+        for (let c1 = 1; c1 <= COLS; c1++) {
+          if (matrix[r1][c1] === 0) continue;
+          for (let r2 = 1; r2 <= ROWS; r2++) {
+            for (let c2 = 1; c2 <= COLS; c2++) {
+              if (r1 === r2 && c1 === c2) continue;
+              if (matrix[r1][c1] === matrix[r2][c2]) {
+                const path = findOnetPath(matrix, r1, c1, r2, c2);
+                if (path) {
+                  return { p1: { r: r1, c: c1 }, p2: { r: r2, c: c2 }, path };
+                }
+              }
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    function renderBoard(pIdx) {
+      const p = players[pIdx];
+      let gridEl = null;
+
+      if (gameMode === 'split') {
+        gridEl = pIdx === 0 ? document.getElementById('p1Grid') : document.getElementById('p2Grid');
+      } else {
+        // Shared board mode shares the single central grid
+        gridEl = document.getElementById('sharedGrid');
+      }
+      if (!gridEl) return;
+
+      gridEl.innerHTML = '';
+      gridEl.style.gridTemplateColumns = `repeat(${COLS}, minmax(0, 1fr))`;
+
+      for (let r = 1; r <= ROWS; r++) {
+        for (let c = 1; c <= COLS; c++) {
+          const val = p.board[r][c];
+          const tile = document.createElement('button');
+          tile.dataset.row = r;
+          tile.dataset.col = c;
+          tile.dataset.player = pIdx;
+
+          if (val === 0) {
+            // Cleared empty slot
+            tile.className = "onet-tile w-full aspect-[4/5] rounded-lg bg-slate-900/40 pointer-events-none opacity-0";
+          } else {
+            const mon = POKEMON_SPECIES.find(item => item.id === val);
+            const isSelected = p.selectedTile && p.selectedTile.r === r && p.selectedTile.c === c;
+
+            let borderClass = "border border-slate-600/70 shadow";
+            if (isSelected) {
+              borderClass = pIdx === 0 ? "tile-p1-selected" : "tile-p2-selected";
+            }
+
+            tile.className = `onet-tile w-full aspect-[4/5] rounded-xl flex flex-col items-center justify-center relative font-black transition-all ${borderClass}`;
+            tile.style.backgroundColor = isSelected ? '' : '#1e293b';
+
+            tile.innerHTML = `
+              <div class="text-xl sm:text-2xl md:text-3xl select-none filter drop-shadow">${mon.icon}</div>
+              <span class="text-[9px] font-bold text-slate-300 hidden sm:block">${mon.name}</span>
+            `;
+
+            // Click handling
+            tile.addEventListener('click', () => handleTileClick(pIdx, r, c));
+          }
+
+          gridEl.appendChild(tile);
+        }
+      }
+    }
+
+    function handleTileClick(pIdx, r, c) {
+      if (matchEnded) return;
+      const player = players[pIdx];
+
+      // Handle debuff lockdown
+      if (player.isFrozen) {
+        playSound('invalid');
+        return;
+      }
+
+      initAudio();
+
+      // If no tile currently selected
+      if (!player.selectedTile) {
+        player.selectedTile = { r, c };
+        playSound('select');
+        renderBoard(pIdx);
+        return;
+      }
+
+      // If clicked the exact same tile again, unselect it
+      if (player.selectedTile.r === r && player.selectedTile.c === c) {
+        player.selectedTile = null;
+        renderBoard(pIdx);
+        return;
+      }
+
+      const r1 = player.selectedTile.r;
+      const c1 = player.selectedTile.c;
+      const r2 = r;
+      const c2 = c;
+
+      // Check Pikachu matching line
+      const path = findOnetPath(player.board, r1, c1, r2, c2);
+
+      if (path) {
+        // MATCH SUCCESS!
+        playSound('match');
+        drawConnectingLine(pIdx, path, () => {
+          // Remove tiles from matrix
+          player.board[r1][c1] = 0;
+          player.board[r2][c2] = 0;
+          player.selectedTile = null;
+          player.tilesCleared += 2;
+
+          // Score & Combo increment
+          player.combos += 1;
+          const comboBonus = (player.combos - 1) * 20;
+          player.score += (100 + comboBonus);
+
+          // Update UI stats
+          updateStatsUI();
+
+          // Check PvP Combo Attack Trigger (Every 3 combos)
+          if (player.combos >= 3 && player.combos % 3 === 0) {
+            triggerPvPAttack(pIdx);
+          }
+
+          // In Shared Mode, synchronize the board matrix to both players
+          if (gameMode === 'shared') {
+            players[0].board = player.board;
+            players[1].board = player.board;
+          }
+
+          renderBoard(pIdx);
+
+          // Check Win Condition or Deadlock
+          checkBoardProgress(pIdx);
+        });
+      } else {
+        // Different species or blocked path
+        if (player.board[r][c] === player.board[r1][c1]) {
+          // Same creature, but no legal path
+          playSound('invalid');
+        } else {
+          // Select newly clicked tile instead
+          playSound('select');
+        }
+        player.selectedTile = { r, c };
+        player.combos = 0; // combo reset
+        updateStatsUI();
+        renderBoard(pIdx);
+      }
+    }
+
+    function drawConnectingLine(pIdx, path, callback) {
+      let svgEl = null;
+      let gridEl = null;
+
+      if (gameMode === 'split') {
+        svgEl = pIdx === 0 ? document.getElementById('p1Svg') : document.getElementById('p2Svg');
+        gridEl = pIdx === 0 ? document.getElementById('p1Grid') : document.getElementById('p2Grid');
+      } else {
+        svgEl = document.getElementById('sharedSvg');
+        gridEl = document.getElementById('sharedGrid');
+      }
+
+      if (!svgEl || !gridEl) {
+        callback();
+        return;
+      }
+
+      const rect = gridEl.getBoundingClientRect();
+      const cellWidth = rect.width / COLS;
+      const cellHeight = rect.height / ROWS;
+
+      // Convert board matrix coords (including virtual padding 0..ROWS+1) to SVG coordinates
+      const points = path.map(pt => {
+        // pt.r is 0 to ROWS+1, pt.c is 0 to COLS+1
+        const x = (pt.c - 0.5) * cellWidth;
+        const y = (pt.r - 0.5) * cellHeight;
+        return `${x},${y}`;
+      }).join(' ');
+
+      const strokeColor = pIdx === 0 ? '#38bdf8' : '#f43f5e';
+      const glowFilter = pIdx === 0 ? 'drop-shadow(0 0 8px #0284c7)' : 'drop-shadow(0 0 8px #e11d48)';
+
+      svgEl.innerHTML = `
+        <polyline points="${points}" fill="none" stroke="${strokeColor}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" class="laser-line" style="filter: ${glowFilter};"/>
+      `;
+
+      setTimeout(() => {
+        svgEl.innerHTML = '';
+        callback();
+      }, 240);
+    }
+
+    function triggerPvPAttack(attackerIdx) {
+      const defenderIdx = attackerIdx === 0 ? 1 : 0;
+      const attackerName = players[attackerIdx].name;
+      const defenderName = players[defenderIdx].name;
+      const targetPanel = defenderIdx === 0 ? document.getElementById('p1BoardPanel') : document.getElementById('p2BoardPanel');
+
+      playSound('attack');
+
+      // Alternating sabotage attacks: Freeze or Smoke Blinding
+      const attacks = ['FREEZE', 'SMOKE'];
+      const chosen = attacks[Math.floor(Math.random() * attacks.length)];
+
+      const banner = document.getElementById('attackBanner');
+      const bannerText = document.getElementById('attackBannerText');
+
+      if (chosen === 'FREEZE') {
+        players[defenderIdx].isFrozen = true;
+        if (targetPanel) targetPanel.classList.add('frozen-effect');
+        bannerText.innerHTML = `⚡ ${attackerName.toUpperCase()} TRIGGERED <b>ICE FREEZE</b> ON ${defenderName.toUpperCase()}! (2.5s)`;
+        banner.classList.remove('hidden');
+        banner.classList.add('flex');
+
+        setTimeout(() => {
+          players[defenderIdx].isFrozen = false;
+          if (targetPanel) targetPanel.classList.remove('frozen-effect');
+          banner.classList.add('hidden');
+          banner.classList.remove('flex');
+        }, 2500);
+
+      } else {
+        players[defenderIdx].isBlinded = true;
+        if (targetPanel) targetPanel.classList.add('ink-blinding');
+        bannerText.innerHTML = `💣 ${attackerName.toUpperCase()} THREW A <b>SMOKEBOMB</b> AT ${defenderName.toUpperCase()}! (2.0s)`;
+        banner.classList.remove('hidden');
+        banner.classList.add('flex');
+
+        setTimeout(() => {
+          players[defenderIdx].isBlinded = false;
+          if (targetPanel) targetPanel.classList.remove('ink-blinding');
+          banner.classList.add('hidden');
+          banner.classList.remove('flex');
+        }, 2000);
+      }
+    }
+
+    function checkBoardProgress(pIdx) {
+      const p = players[pIdx];
+
+      // Check if board cleared
+      let remaining = 0;
+      for (let r = 1; r <= ROWS; r++) {
+        for (let c = 1; c <= COLS; c++) {
+          if (p.board[r][c] !== 0) remaining++;
+        }
+      }
+
+      if (remaining === 0) {
+        endMatch(`${p.name} Cleared the Entire Board!`, pIdx);
+        return;
+      }
+
+      // Check if any valid move exists; if deadlocked, auto reshuffle
+      const validMove = checkAvailableMove(p.board);
+      if (!validMove) {
+        reshufflePlayerBoard(pIdx, true);
+      }
+    }
+
+    function reshufflePlayerBoard(pIdx, isAuto = false) {
+      const p = players[pIdx];
+      if (!isAuto && p.shufflesLeft <= 0) {
+        playSound('invalid');
+        return;
+      }
+      if (!isAuto) p.shufflesLeft--;
+
+      // Collect all remaining tile values
+      const remainingVals = [];
+      for (let r = 1; r <= ROWS; r++) {
+        for (let c = 1; c <= COLS; c++) {
+          if (p.board[r][c] !== 0) {
+            remainingVals.push(p.board[r][c]);
+          }
+        }
+      }
+
+      // Shuffle array
+      for (let i = remainingVals.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [remainingVals[i], remainingVals[j]] = [remainingVals[j], remainingVals[i]];
+      }
+
+      // Re-populate matrix
+      let idx = 0;
+      for (let r = 1; r <= ROWS; r++) {
+        for (let c = 1; c <= COLS; c++) {
+          if (p.board[r][c] !== 0) {
+            p.board[r][c] = remainingVals[idx++];
+          }
+        }
+      }
+
+      p.selectedTile = null;
+      renderBoard(pIdx);
+      updateStatsUI();
+
+      // In shared mode sync both
+      if (gameMode === 'shared') {
+        players[1 - pIdx].board = p.board;
+      }
+    }
+
+    function requestHint(pIdx) {
+      const p = players[pIdx];
+      const validMove = checkAvailableMove(p.board);
+      if (validMove) {
+        playSound('select');
+        // Visual pulse on the hint tiles
+        const grid = (gameMode === 'split') ? (pIdx === 0 ? document.getElementById('p1Grid') : document.getElementById('p2Grid')) : document.getElementById('sharedGrid');
+        const tiles = grid.querySelectorAll('.onet-tile');
+
+        tiles.forEach(tile => {
+          const r = parseInt(tile.dataset.row);
+          const c = parseInt(tile.dataset.col);
+          if ((r === validMove.p1.r && c === validMove.p1.c) || (r === validMove.p2.r && c === validMove.p2.c)) {
+            tile.classList.add('ring-4', 'ring-yellow-400', 'animate-pulse');
+            setTimeout(() => {
+              tile.classList.remove('ring-4', 'ring-yellow-400', 'animate-pulse');
+            }, 1500);
+          }
+        });
+      } else {
+        reshufflePlayerBoard(pIdx, true);
+      }
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      matchTimeLeft = matchTotalSeconds;
+
+      timerInterval = setInterval(() => {
+        if (matchEnded) {
+          clearInterval(timerInterval);
+          return;
+        }
+
+        matchTimeLeft--;
+        const mins = String(Math.floor(matchTimeLeft / 60)).padStart(2, '0');
+        const secs = String(matchTimeLeft % 60).padStart(2, '0');
+        document.getElementById('matchTimerText').textContent = `${mins}:${secs}`;
+
+        const pct = (matchTimeLeft / matchTotalSeconds) * 100;
+        document.getElementById('matchTimeBar').style.width = `${pct}%`;
+
+        if (matchTimeLeft <= 0) {
+          clearInterval(timerInterval);
+          // Time's up: Determine winner by highest score
+          if (players[0].score > players[1].score) {
+            endMatch("Time's Up! Player 1 Won on Points!", 0);
+          } else if (players[1].score > players[0].score) {
+            endMatch("Time's Up! Player 2 Won on Points!", 1);
+          } else {
+            endMatch("Time's Up! It's an Epic Draw!", -1);
+          }
+        }
+      }, 1000);
+    }
+
+    function endMatch(reason, winnerIdx) {
+      matchEnded = true;
+      clearInterval(timerInterval);
+      playSound('victory');
+
+      const modal = document.getElementById('victoryModal');
+      const title = document.getElementById('victoryTitle');
+      const subtitle = document.getElementById('victorySubtitle');
+      const trophy = document.getElementById('victoryTrophy');
+
+      if (winnerIdx === 0) {
+        trophy.textContent = "🏆⚡";
+        title.textContent = "PLAYER 1 WINS!";
+        title.className = "text-3xl font-black text-sky-400 mb-1 tracking-wider uppercase";
+      } else if (winnerIdx === 1) {
+        trophy.textContent = "🏆🔥";
+        title.textContent = "PLAYER 2 WINS!";
+        title.className = "text-3xl font-black text-rose-400 mb-1 tracking-wider uppercase";
+      } else {
+        trophy.textContent = "🤝";
+        title.textContent = "STALEMATE DRAW!";
+        title.className = "text-3xl font-black text-amber-400 mb-1 tracking-wider uppercase";
+      }
+
+      subtitle.textContent = reason;
+      document.getElementById('modalP1Score').textContent = `${players[0].score} pts`;
+      document.getElementById('modalP2Score').textContent = `${players[1].score} pts`;
+      document.getElementById('modalP1Tiles').textContent = `${players[0].tilesCleared} / ${TOTAL_TILES}`;
+      document.getElementById('modalP2Tiles').textContent = `${players[1].tilesCleared} / ${TOTAL_TILES}`;
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeVictoryModal() {
+      document.getElementById('victoryModal').classList.add('hidden');
+      document.getElementById('victoryModal').classList.remove('flex');
+    }
+
+    function restartMatch() {
+      closeVictoryModal();
+      matchEnded = false;
+
+      // Reset Players
+      players.forEach(p => {
+        p.score = 0;
+        p.combos = 0;
+        p.tilesCleared = 0;
+        p.shufflesLeft = 3;
+        p.selectedTile = null;
+        p.isFrozen = false;
+        p.isBlinded = false;
+      });
+
+      // Generate seed pairs identically for both
+      const seedList = generateIdenticalSeedPairs();
+      players[0].board = createPaddedMatrix(seedList);
+      // Clone exact matrix for P2 so the board is 100% fair and identical
+      players[1].board = JSON.parse(JSON.stringify(players[0].board));
+
+      // Remove any lingering debuff styles
+      const p1Panel = document.getElementById('p1BoardPanel');
+      const p2Panel = document.getElementById('p2BoardPanel');
+      if (p1Panel) p1Panel.className = p1Panel.className.replace(/frozen-effect|ink-blinding/g, '');
+      if (p2Panel) p2Panel.className = p2Panel.className.replace(/frozen-effect|ink-blinding/g, '');
+
+      // Render
+      if (gameMode === 'split') {
+        renderBoard(0);
+        renderBoard(1);
+      } else {
+        renderBoard(sharedActivePlayer);
+      }
+
+      updateStatsUI();
+      startTimer();
+    }
+
+    function switchGameMode(mode) {
+      gameMode = mode;
+      const splitBtn = document.getElementById('modeSplitBtn');
+      const sharedBtn = document.getElementById('modeSharedBtn');
+      const splitArena = document.getElementById('splitArena');
+      const sharedArena = document.getElementById('sharedArena');
+
+      if (mode === 'split') {
+        splitBtn.className = "px-3 py-1.5 rounded-lg transition-all bg-sky-600 text-white shadow";
+        sharedBtn.className = "px-3 py-1.5 rounded-lg transition-all text-slate-400 hover:text-white";
+        splitArena.classList.remove('hidden');
+        splitArena.classList.add('grid');
+        sharedArena.classList.add('hidden');
+        sharedArena.classList.remove('flex');
+      } else {
+        sharedBtn.className = "px-3 py-1.5 rounded-lg transition-all bg-amber-500 text-slate-950 font-black shadow";
+        splitBtn.className = "px-3 py-1.5 rounded-lg transition-all text-slate-400 hover:text-white";
+        splitArena.classList.add('hidden');
+        splitArena.classList.remove('grid');
+        sharedArena.classList.remove('hidden');
+        sharedArena.classList.add('flex');
+      }
+      restartMatch();
+    }
+
+    function toggleSharedTurn() {
+      sharedActivePlayer = sharedActivePlayer === 0 ? 1 : 0;
+      const btn = document.getElementById('turnIndicatorBtn');
+      if (sharedActivePlayer === 0) {
+        btn.className = "text-xs px-3 py-1 rounded-lg bg-sky-600 text-white font-black shadow transition";
+        btn.textContent = "Active Selector: Player 1 (Blue)";
+      } else {
+        btn.className = "text-xs px-3 py-1 rounded-lg bg-rose-600 text-white font-black shadow transition";
+        btn.textContent = "Active Selector: Player 2 (Red)";
+      }
+      renderBoard(sharedActivePlayer);
+    }
+
+    function updateStatsUI() {
+      document.getElementById('p1Score').textContent = `${players[0].score} pts`;
+      document.getElementById('p1Combo').textContent = `x${players[0].combos}`;
+      const p1Sh = document.getElementById('p1Shuffles');
+      if (p1Sh) p1Sh.textContent = players[0].shufflesLeft;
+
+      document.getElementById('p2Score').textContent = `${players[1].score} pts`;
+      document.getElementById('p2Combo').textContent = `x${players[1].combos}`;
+      const p2Sh = document.getElementById('p2Shuffles');
+      if (p2Sh) p2Sh.textContent = players[1].shufflesLeft;
+    }
+
+    function openRulesModal() {
+      document.getElementById('rulesModal').classList.remove('hidden');
+      document.getElementById('rulesModal').classList.add('flex');
+    }
+
+    function closeRulesModal() {
+      document.getElementById('rulesModal').classList.add('hidden');
+      document.getElementById('rulesModal').classList.remove('flex');
+    }
+
+    window.onload = function () {
+      restartMatch();
+    };
+  </script>
+</body>
+</html>

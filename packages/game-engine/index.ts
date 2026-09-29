@@ -1,0 +1,15 @@
+export { createBoard, getTileAt, isInsideBoard, validateBoardConfig } from "./Board.js";
+export type { Board, BoardConfig } from "./Board.js";
+export { generateBoard } from "./BoardGenerator.js";
+export type { RandomSource } from "./BoardGenerator.js";
+export { ComboSystem, DEFAULT_COMBO_CONFIG } from "./ComboSystem.js";
+export type { ComboConfig } from "./ComboSystem.js";
+export { GameEngine } from "./GameEngine.js";
+export type { GameEngineConfig, MatchAttemptResult } from "./GameEngine.js";
+export { validateMatch } from "./MatchValidator.js";
+export { findPath } from "./PathFinder.js";
+export type { FindPathResult, InvalidPathResult, PathResult } from "./PathFinder.js";
+export { calculateScore, DEFAULT_SCORE_CONFIG } from "./ScoreSystem.js";
+export type { ScoreConfig } from "./ScoreSystem.js";
+export { hasAvailableMoves, shuffleBoard } from "./ShuffleSystem.js";
+export type { Position, Tile } from "./Tile.js";
